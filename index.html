@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OpenRouter 仪表盘</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  background: #0d1117; color: #c9d1d9; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-size: 14px; padding: 24px; min-height: 100vh;
+}
+#app { max-width: 960px; margin: 0 auto; }
+
+header { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; }
+header h1 { font-size: 20px; font-weight: 600; flex: 1; }
+#lastUpdated { font-size: 12px; color: #8b949e; }
+#refreshHint { font-size: 11px; color: #484f58; }
+.btn {
+  background: #21262d; border: 1px solid #30363d; color: #c9d1d9; padding: 6px 14px;
+  border-radius: 6px; cursor: pointer; font-size: 13px; white-space: nowrap;
+}
+.btn:hover { background: #30363d; }
+.btn-primary { background: #238636; border-color: #2ea043; }
+.btn-primary:hover { background: #2ea043; }
+.btn-danger { background: #da3633; border-color: #f85149; }
+.btn-danger:hover { background: #f85149; }
+
+/* key section */
+#keySection { background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 16px; margin-bottom: 16px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+#keySection .input-wrap { flex: 1; display: flex; align-items: center; background: #0d1117; border: 1px solid #30363d; border-radius: 6px; min-width: 200px; }
+#keySection .input-wrap:focus-within { border-color: #58a6ff; }
+#keySection .input-wrap input { flex: 1; background: transparent; border: none; color: #c9d1d9; padding: 8px 12px; font-size: 13px; outline: none; font-family: monospace; }
+#keySection .input-wrap .toggle-vis { background: none; border: none; color: #8b949e; cursor: pointer; padding: 0 10px; font-size: 14px; line-height: 1; }
+#keySection .input-wrap .toggle-vis:hover { color: #c9d1d9; }
+
+/* loading */
+#loading { text-align: center; padding: 40px 0; color: #8b949e; font-size: 14px; }
+.spinner { display: inline-block; width: 20px; height: 20px; border: 2px solid #30363d; border-top-color: #58a6ff; border-radius: 50%; animation: spin .8s linear infinite; margin-right: 8px; vertical-align: middle; }
+.btn.spinning .icon { display: inline-block; animation: spin-fast .5s linear infinite; }
+@keyframes spin-fast { to { transform: rotate(360deg); } }
+
+/* dashboard */
+.hidden { display: none !important; }
+#error { background: #3d1111; border: 1px solid #f85149; border-radius: 8px; padding: 12px 16px; margin-bottom: 16px; color: #ff7b72; font-size: 13px; white-space: pre-wrap; }
+
+/* section titles */
+.section-title { font-size: 13px; font-weight: 600; color: #8b949e; text-transform: uppercase; letter-spacing: 0.5px; margin: 20px 0 10px; }
+.section-title .note { font-weight: 400; text-transform: none; color: #484f58; font-size: 11px; letter-spacing: 0; }
+
+/* cards */
+.card-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 10px; }
+.card {
+  background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 14px 16px;
+  display: flex; flex-direction: column; gap: 4px;
+}
+.card .label { font-size: 11px; color: #8b949e; text-transform: uppercase; letter-spacing: 0.3px; }
+.card .value { font-size: 22px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.card .value.green { color: #3fb950; }
+.card .value.red { color: #f85149; }
+.card .value.yellow { color: #d29922; }
+.card .value.sm { font-size: 16px; }
+.card .sub { font-size: 10px; color: #484f58; margin-top: 2px; }
+
+/* tables */
+.table-wrap { background: #161b22; border: 1px solid #30363d; border-radius: 8px; overflow-x: auto; }
+.table-wrap.scroll { max-height: 420px; overflow-y: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th { text-align: left; padding: 10px 14px; color: #8b949e; font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.3px; border-bottom: 1px solid #30363d; white-space: nowrap; position: sticky; top: 0; background: #161b22; }
+td { padding: 10px 14px; border-bottom: 1px solid #21262d; }
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: #1c2128; }
+td.model-name { font-family: monospace; font-size: 12px; max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+td.numeric { text-align: right; font-variant-numeric: tabular-nums; }
+th.numeric { text-align: right; }
+
+@media (max-width: 640px) {
+  body { padding: 12px; }
+  .card-row { grid-template-columns: 1fr; }
+  header { flex-wrap: wrap; }
+  #keySection .input-wrap { min-width: 100%; }
+}
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <h1>OpenRouter 仪表盘</h1>
+    <span id="lastUpdated"></span>
+    <span id="refreshHint">每 30 秒自动刷新</span>
+    <button class="btn" id="refreshBtn" title="手动刷新"><span class="icon">&#x21bb;</span> 刷新</button>
+  </header>
+
+  <div id="keySection">
+    <div class="input-wrap">
+      <input type="password" id="apiKeyInput" placeholder="输入你的 Management Key..." spellcheck="false" autocomplete="off" />
+      <button class="toggle-vis" id="toggleKeyVis" title="显示/隐藏 Key">&#x1f441;</button>
+    </div>
+    <button class="btn btn-primary" id="saveKeyBtn">保存</button>
+    <button class="btn btn-danger" id="clearKeyBtn">清除</button>
+  </div>
+
+  <div id="error" class="hidden"></div>
+
+  <div id="loading" class="hidden">
+    <span class="spinner"></span>加载中...
+  </div>
+
+  <div id="dashboard" class="hidden">
+    <div class="section-title">额度概览</div>
+    <div class="card-row">
+      <div class="card"><span class="label">总额度</span><span class="value" id="totalLimit">—</span></div>
+      <div class="card"><span class="label">已用量</span><span class="value" id="totalUsed">—</span></div>
+      <div class="card"><span class="label">剩余量</span><span class="value" id="remaining">—</span></div>
+    </div>
+
+    <div class="card-row">
+      <div class="card"><span class="label">今日费用</span><span class="value" id="todayUsage">—</span></div>
+      <div class="card"><span class="label">本周费用</span><span class="value" id="weekUsage">—</span></div>
+      <div class="card"><span class="label">本月费用</span><span class="value" id="monthUsage">—</span></div>
+    </div>
+
+    <div class="card-row" id="activityPeriodRow">
+      <div class="card"><span class="label">今日请求 / Token</span><span class="value sm" id="todayActivity">—</span><span class="sub">统计延迟约 1 天</span></div>
+      <div class="card"><span class="label">本周请求 / Token</span><span class="value sm" id="weekActivity">—</span></div>
+      <div class="card"><span class="label">本月请求 / Token</span><span class="value sm" id="monthActivity">—</span></div>
+    </div>
+
+    <div class="section-title">信用额度</div>
+    <div class="card-row">
+      <div class="card"><span class="label">已购买</span><span class="value" id="creditsPurchased">—</span></div>
+      <div class="card"><span class="label">已消耗</span><span class="value" id="creditsConsumed">—</span></div>
+      <div class="card"><span class="label">剩余额度</span><span class="value" id="creditsRemaining">—</span></div>
+    </div>
+
+    <div class="section-title">汇总 <span class="note">（活动数据延迟约 1 天）</span></div>
+    <div class="card-row">
+      <div class="card"><span class="label">总请求数</span><span class="value" id="totalRequests">—</span></div>
+      <div class="card"><span class="label">Prompt Tokens</span><span class="value" id="totalPromptTokens">—</span></div>
+      <div class="card"><span class="label">Completion Tokens</span><span class="value" id="totalCompletionTokens">—</span></div>
+    </div>
+
+    <div class="section-title">各模型用量（汇总）</div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>模型</th>
+            <th class="numeric">请求数</th>
+            <th class="numeric">Prompt</th>
+            <th class="numeric">Completion</th>
+            <th class="numeric">费用</th>
+          </tr>
+        </thead>
+        <tbody id="modelBody"></tbody>
+      </table>
+    </div>
+
+    <div class="section-title">最近使用记录</div>
+    <div class="table-wrap scroll">
+      <table>
+        <thead>
+          <tr>
+            <th>日期</th>
+            <th>模型</th>
+            <th>提供商</th>
+            <th class="numeric">请求数</th>
+            <th class="numeric">Prompt</th>
+            <th class="numeric">Completion</th>
+            <th class="numeric">费用</th>
+          </tr>
+        </thead>
+        <tbody id="logBody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script>
+const BASE = 'https://openrouter.ai/api/v1';
+const KEY_STORAGE = 'openrouter_mgmt_key';
+const REFRESH_INTERVAL = 30000;
+
+let refreshTimer = null;
+let loadingCount = 0;
+
+const $ = s => document.querySelector(s);
+const $$ = s => document.querySelectorAll(s);
+
+const apiKeyInput = $('#apiKeyInput');
+const saveKeyBtn = $('#saveKeyBtn');
+const clearKeyBtn = $('#clearKeyBtn');
+const toggleKeyVis = $('#toggleKeyVis');
+const dashboard = $('#dashboard');
+const loading = $('#loading');
+const errorEl = $('#error');
+const refreshBtn = $('#refreshBtn');
+const lastUpdated = $('#lastUpdated');
+
+/* ---- Formatting helpers ---- */
+function fmtCurrency(n) {
+  if (n == null || isNaN(n)) return '—';
+  return (n < 0 ? '-$' : '$') + Math.abs(n).toFixed(2);
+}
+function fmtTokens(n) {
+  if (n == null || isNaN(n)) return '—';
+  if (n >= 1_000_000_000) return (n / 1_000_000_000).toFixed(1) + 'B';
+  if (n >= 1_000_000) return (n / 1_000_000).toFixed(1) + 'M';
+  if (n >= 10_000) return (n / 1_000).toFixed(1) + 'K';
+  return n.toLocaleString();
+}
+function fmtNumber(n) {
+  if (n == null || isNaN(n)) return '—';
+  return n.toLocaleString();
+}
+function fmtTime() {
+  return new Date().toLocaleTimeString();
+}
+
+/* ---- Loading overlay ---- */
+function setLoading(on) {
+  loadingCount += on ? 1 : -1;
+  const show = loadingCount > 0;
+  loading.classList.toggle('hidden', !show);
+  dashboard.classList.toggle('hidden', show);
+}
+
+/* ---- API calls ---- */
+function getKey() { return localStorage.getItem(KEY_STORAGE); }
+function setKey(v) {
+  if (v) localStorage.setItem(KEY_STORAGE, v);
+  else localStorage.removeItem(KEY_STORAGE);
+}
+
+function headers() {
+  return { 'Authorization': 'Bearer ' + getKey(), 'Content-Type': 'application/json' };
+}
+
+async function apiGet(path) {
+  const res = await fetch(BASE + path, { headers: headers() });
+  if (!res.ok) {
+    let body = '';
+    try { body = await res.text(); } catch (_) {}
+    throw new Error('HTTP ' + res.status + (body ? ': ' + body.slice(0, 300) : ''));
+  }
+  return res.json();
+}
+
+function showError(msg) {
+  if (!msg) { errorEl.classList.add('hidden'); return; }
+  errorEl.textContent = msg;
+  errorEl.classList.remove('hidden');
+}
+
+/* ---- Data processing ---- */
+function processActivity(items) {
+  if (!items || !items.length) return null;
+
+  const byModel = {};
+  let totalReqs = 0, totalPrompt = 0, totalCompletion = 0;
+  let periodReqs = { today: 0, week: 0, month: 0 };
+  let periodToks = { today: 0, week: 0, month: 0 };
+
+  const now = new Date();
+  const today = now.toISOString().slice(0, 10);
+  const wk = new Date(now); wk.setDate(now.getDate() - ((now.getDay() + 6) % 7));
+  const weekStart = wk.toISOString().slice(0, 10);
+  const monthStart = now.toISOString().slice(0, 7) + '-01';
+
+  for (const item of items) {
+    const m = item.model || item.model_permaslug || 'unknown';
+    if (!byModel[m]) byModel[m] = { requests: 0, prompt: 0, completion: 0, cost: 0 };
+    byModel[m].requests += item.requests || 0;
+    byModel[m].prompt += item.prompt_tokens || 0;
+    byModel[m].completion += item.completion_tokens || 0;
+    byModel[m].cost += item.usage || 0;
+    totalReqs += item.requests || 0;
+    totalPrompt += item.prompt_tokens || 0;
+    totalCompletion += item.completion_tokens || 0;
+
+    const d = item.date;
+    const r = item.requests || 0;
+    const t = (item.prompt_tokens || 0) + (item.completion_tokens || 0);
+    if (d === today) { periodReqs.today += r; periodToks.today += t; }
+    if (d >= weekStart) { periodReqs.week += r; periodToks.week += t; }
+    if (d >= monthStart) { periodReqs.month += r; periodToks.month += t; }
+  }
+
+  const sorted = [...items].sort((a, b) => b.date.localeCompare(a.date));
+  const modelSorted = Object.entries(byModel).sort((a, b) => b[1].cost - a[1].cost);
+
+  return { totalReqs, totalPrompt, totalCompletion, modelSorted, sorted, periodReqs, periodToks };
+}
+
+/* ---- Render functions ---- */
+function renderKeyData(d) {
+  if (!d.data) {
+    for (const id of ['totalLimit', 'totalUsed', 'remaining', 'todayUsage', 'weekUsage', 'monthUsage']) {
+      $('#' + id).textContent = '—';
+    }
+    $('#remaining').className = 'value';
+    return;
+  }
+
+  const { limit, usage: used, limit_remaining: remaining,
+          usage_daily, usage_weekly, usage_monthly } = d.data;
+
+  const totalLimit = $('#totalLimit');
+  const totalUsed = $('#totalUsed');
+  const remainingEl = $('#remaining');
+
+  if (limit != null) {
+    totalLimit.textContent = fmtCurrency(limit);
+  } else {
+    totalLimit.textContent = '未设置额度限制';
+    totalLimit.style.fontSize = '14px';
+  }
+
+  totalUsed.textContent = fmtCurrency(used);
+  remainingEl.textContent = fmtCurrency(remaining);
+
+  remainingEl.className = 'value';
+  if (remaining != null) {
+    if (remaining <= 0) remainingEl.classList.add('red');
+    else if (limit != null && remaining < limit * 0.2) remainingEl.classList.add('yellow');
+    else if (limit == null && remaining < 1) remainingEl.classList.add('yellow');
+    else remainingEl.classList.add('green');
+  }
+
+  $('#todayUsage').textContent = fmtCurrency(usage_daily);
+  $('#weekUsage').textContent = fmtCurrency(usage_weekly);
+  $('#monthUsage').textContent = fmtCurrency(usage_monthly);
+}
+
+function renderCreditsData(d) {
+  if (!d.data) {
+    for (const id of ['creditsPurchased', 'creditsConsumed', 'creditsRemaining']) {
+      $('#' + id).textContent = '—';
+    }
+    $('#creditsRemaining').className = 'value';
+    return;
+  }
+
+  const { total_credits, total_usage } = d.data;
+  const purchased = total_credits ?? 0;
+  const consumed = total_usage ?? 0;
+  const remaining = purchased - consumed;
+
+  $('#creditsPurchased').textContent = fmtCurrency(purchased);
+  $('#creditsConsumed').textContent = fmtCurrency(consumed);
+
+  const el = $('#creditsRemaining');
+  el.textContent = fmtCurrency(remaining);
+  el.className = 'value';
+  if (remaining <= 0) el.classList.add('red');
+  else if (remaining < purchased * 0.2) el.classList.add('yellow');
+  else el.classList.add('green');
+}
+
+function renderActivityData(result) {
+  const tbody = $('#modelBody');
+
+  if (!result) {
+    $('#totalRequests').textContent = '—';
+    $('#totalPromptTokens').textContent = '—';
+    $('#totalCompletionTokens').textContent = '—';
+    tbody.innerHTML = '<tr><td colspan="5" style="color:#8b949e;text-align:center;padding:24px;">暂无活动数据</td></tr>';
+    return;
+  }
+
+  const { totalReqs, totalPrompt, totalCompletion, modelSorted } = result;
+
+  $('#totalRequests').textContent = fmtNumber(totalReqs);
+  $('#totalPromptTokens').textContent = fmtTokens(totalPrompt);
+  $('#totalCompletionTokens').textContent = fmtTokens(totalCompletion);
+
+  tbody.innerHTML = '';
+  for (const [model, data] of modelSorted) {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td class="model-name" title="${model}">${model}</td>
+      <td class="numeric">${fmtNumber(data.requests)}</td>
+      <td class="numeric">${fmtTokens(data.prompt)}</td>
+      <td class="numeric">${fmtTokens(data.completion)}</td>
+      <td class="numeric">${fmtCurrency(data.cost)}</td>`;
+    tbody.appendChild(tr);
+  }
+}
+
+function renderActivityLog(result) {
+  const tbody = $('#logBody');
+
+  if (!result) {
+    tbody.innerHTML = '<tr><td colspan="7" style="color:#8b949e;text-align:center;padding:24px;">暂无使用记录</td></tr>';
+    return;
+  }
+
+  const { sorted, periodReqs, periodToks } = result;
+
+  const fmtP = v => v === 0 && !sorted.some(i => i.date >= new Date().toISOString().slice(0, 10))
+    ? '—' : fmtNumber(v);
+  $('#todayActivity').textContent = fmtP(periodReqs.today) + ' / ' + fmtP(periodToks.today);
+  $('#weekActivity').textContent = fmtNumber(periodReqs.week) + ' / ' + fmtTokens(periodToks.week);
+  $('#monthActivity').textContent = fmtNumber(periodReqs.month) + ' / ' + fmtTokens(periodToks.month);
+
+  tbody.innerHTML = '';
+  for (const item of sorted) {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td style="white-space:nowrap;font-size:12px;color:#8b949e">${item.date}</td>
+      <td class="model-name" title="${item.model}">${item.model}</td>
+      <td style="font-size:12px">${item.provider_name || '—'}</td>
+      <td class="numeric">${fmtNumber(item.requests)}</td>
+      <td class="numeric">${fmtTokens(item.prompt_tokens)}</td>
+      <td class="numeric">${fmtTokens(item.completion_tokens)}</td>
+      <td class="numeric">${fmtCurrency(item.usage)}</td>`;
+    tbody.appendChild(tr);
+  }
+}
+
+function updateLastUpdated() {
+  lastUpdated.textContent = '更新于 ' + fmtTime();
+}
+
+/* ---- Main refresh ---- */
+async function refresh() {
+  showError(null);
+  const key = getKey();
+  if (!key) {
+    dashboard.classList.add('hidden');
+    loading.classList.add('hidden');
+    return;
+  }
+
+  const results = await Promise.allSettled([
+    apiGet('/key'),
+    apiGet('/credits'),
+    apiGet('/activity'),
+  ]);
+
+  const keyData = results[0].status === 'fulfilled' ? results[0].value : { error: results[0].reason.message };
+  const creditsData = results[1].status === 'fulfilled' ? results[1].value : { error: results[1].reason.message };
+  const activityResp = results[2].status === 'fulfilled' ? results[2].value : { error: results[2].reason.message };
+
+  renderKeyData(keyData);
+  renderCreditsData(creditsData);
+
+  if (activityResp.data) {
+    const result = processActivity(activityResp.data);
+    renderActivityData(result);
+    renderActivityLog(result);
+  } else {
+    $('#totalRequests').textContent = '需 Management Key';
+    $('#totalPromptTokens').textContent = '';
+    $('#totalCompletionTokens').textContent = '';
+    $('#modelBody').innerHTML = '<tr><td colspan="5" style="color:#8b949e;text-align:center;padding:24px;">需 Management Key</td></tr>';
+    $('#logBody').innerHTML = '<tr><td colspan="7" style="color:#8b949e;text-align:center;padding:24px;">需 Management Key</td></tr>';
+    for (const id of ['todayActivity', 'weekActivity', 'monthActivity']) $('#' + id).textContent = '—';
+  }
+
+  updateLastUpdated();
+}
+
+/* ---- Timer ---- */
+function startTimer() {
+  stopTimer();
+
+  const now = new Date();
+  const sec = now.getSeconds();
+  const ms = now.getMilliseconds();
+  const toNext = sec < 30
+    ? (30 - sec) * 1000 - ms
+    : (60 - sec) * 1000 - ms;
+
+  refreshTimer = setTimeout(() => {
+    refresh();
+    refreshTimer = setInterval(refresh, REFRESH_INTERVAL);
+  }, toNext);
+}
+function stopTimer() {
+  if (refreshTimer) { clearInterval(refreshTimer); refreshTimer = null; }
+}
+
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) { stopTimer(); }
+  else if (getKey()) { refresh(); startTimer(); }
+});
+
+/* ---- Key UI ---- */
+toggleKeyVis.addEventListener('click', () => {
+  const t = apiKeyInput;
+  if (t.type === 'password') { t.type = 'text'; toggleKeyVis.textContent = '\u{1f441}'; }
+  else { t.type = 'password'; toggleKeyVis.textContent = '\u{1f441}'; }
+});
+
+function initKeyUI() {
+  const saved = getKey();
+  if (saved) {
+    apiKeyInput.value = saved;
+    dashboard.classList.remove('hidden');
+    setLoading(true);
+    refresh().then(() => setLoading(false));
+    startTimer();
+  }
+}
+
+saveKeyBtn.addEventListener('click', () => {
+  const val = apiKeyInput.value.trim();
+  if (!val) { showError('请输入有效的 API Key'); return; }
+  setKey(val);
+  showError(null);
+  dashboard.classList.remove('hidden');
+  setLoading(true);
+  refresh().then(() => setLoading(false));
+  startTimer();
+});
+
+clearKeyBtn.addEventListener('click', () => {
+  setKey(null);
+  apiKeyInput.value = '';
+  dashboard.classList.add('hidden');
+  loading.classList.add('hidden');
+  showError(null);
+  stopTimer();
+});
+
+refreshBtn.addEventListener('click', () => {
+  refreshBtn.classList.add('spinning');
+  refresh().finally(() => refreshBtn.classList.remove('spinning'));
+});
+apiKeyInput.addEventListener('keydown', e => { if (e.key === 'Enter') saveKeyBtn.click(); });
+
+initKeyUI();
+</script>
+</body>
+</html>
