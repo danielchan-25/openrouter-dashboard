@@ -5,169 +5,265 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>OpenRouter 仪表盘</title>
 <style>
+:root {
+  --bg: #0d1117;
+  --bg-secondary: #161b22;
+  --bg-hover: #1c2128;
+  --text: #c9d1d9;
+  --text-secondary: #8b949e;
+  --text-muted: #484f58;
+  --border: #30363d;
+  --border-light: #21262d;
+  --input-bg: #0d1117;
+  --card-bg: #161b22;
+  --table-bg: #161b22;
+  --btn-bg: #21262d;
+  --btn-border: #30363d;
+  --error-bg: #3d1111;
+  --error-text: #ff7b72;
+  --error-border: #f85149;
+  --green: #3fb950;
+  --red: #f85149;
+  --yellow: #d29922;
+  --blue: #58a6ff;
+  --green-btn: #238636;
+  --green-btn-border: #2ea043;
+  --red-btn: #da3633;
+  --red-btn-border: #f85149;
+  --spinner-track: #30363d;
+  --spinner-fg: #58a6ff;
+}
+[data-theme="light"] {
+  --bg: #ffffff;
+  --bg-secondary: #f6f8fa;
+  --bg-hover: #f3f4f6;
+  --text: #24292f;
+  --text-secondary: #656d76;
+  --text-muted: #959da5;
+  --border: #d0d7de;
+  --border-light: #e8ecef;
+  --input-bg: #ffffff;
+  --card-bg: #f6f8fa;
+  --table-bg: #f6f8fa;
+  --btn-bg: #f6f8fa;
+  --btn-border: #d0d7de;
+  --error-bg: #fff0f0;
+  --error-text: #cf222e;
+  --error-border: #cf222e;
+  --green: #1a7f37;
+  --red: #cf222e;
+  --yellow: #9a6700;
+  --blue: #0969da;
+  --green-btn: #2da44e;
+  --green-btn-border: #1a7f37;
+  --red-btn: #cf222e;
+  --red-btn-border: #b8151e;
+  --spinner-track: #d0d7de;
+  --spinner-fg: #0969da;
+}
+
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 body {
-  background: #0d1117; color: #c9d1d9; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  font-size: 14px; padding: 24px; min-height: 100vh;
+  background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-size: 14px; padding: 24px; min-height: 100vh; transition: background .3s, color .3s;
 }
 #app { max-width: 960px; margin: 0 auto; }
 
-header { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; }
-header h1 { font-size: 20px; font-weight: 600; flex: 1; }
-#lastUpdated { font-size: 12px; color: #8b949e; }
-#refreshHint { font-size: 11px; color: #484f58; }
+header { display: flex; align-items: center; gap: 8px; margin-bottom: 20px; flex-wrap: wrap; }
+header h1 { font-size: 20px; font-weight: 600; flex: 1; min-width: 0; }
+#lastUpdated { font-size: 12px; color: var(--text-secondary); white-space: nowrap; }
+#refreshHint { font-size: 11px; color: var(--text-muted); }
 .btn {
-  background: #21262d; border: 1px solid #30363d; color: #c9d1d9; padding: 6px 14px;
-  border-radius: 6px; cursor: pointer; font-size: 13px; white-space: nowrap;
+  background: var(--btn-bg); border: 1px solid var(--btn-border); color: var(--text); padding: 6px 14px;
+  border-radius: 6px; cursor: pointer; font-size: 13px; white-space: nowrap; transition: background .15s;
 }
-.btn:hover { background: #30363d; }
-.btn-primary { background: #238636; border-color: #2ea043; }
-.btn-primary:hover { background: #2ea043; }
-.btn-danger { background: #da3633; border-color: #f85149; }
-.btn-danger:hover { background: #f85149; }
+.btn:hover { background: var(--bg-hover); }
+.btn-primary { background: var(--green-btn); border-color: var(--green-btn-border); }
+.btn-primary:hover { opacity: .9; }
+.btn-danger { background: var(--red-btn); border-color: var(--red-btn-border); }
+.btn-danger:hover { opacity: .9; }
+
+/* compact select */
+.compact-select {
+  background: var(--btn-bg); border: 1px solid var(--btn-border); color: var(--text);
+  border-radius: 6px; padding: 6px 8px; font-size: 12px; cursor: pointer; outline: none;
+  appearance: auto; transition: background .15s;
+}
+.compact-select:hover { background: var(--bg-hover); }
 
 /* key section */
-#keySection { background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 16px; margin-bottom: 16px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
-#keySection .input-wrap { flex: 1; display: flex; align-items: center; background: #0d1117; border: 1px solid #30363d; border-radius: 6px; min-width: 200px; }
-#keySection .input-wrap:focus-within { border-color: #58a6ff; }
-#keySection .input-wrap input { flex: 1; background: transparent; border: none; color: #c9d1d9; padding: 8px 12px; font-size: 13px; outline: none; font-family: monospace; }
-#keySection .input-wrap .toggle-vis { background: none; border: none; color: #8b949e; cursor: pointer; padding: 0 10px; font-size: 14px; line-height: 1; }
-#keySection .input-wrap .toggle-vis:hover { color: #c9d1d9; }
+#keySection { background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 8px; padding: 16px; margin-bottom: 16px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+#keySection .input-wrap { flex: 1; display: flex; align-items: center; background: var(--input-bg); border: 1px solid var(--border); border-radius: 6px; min-width: 200px; transition: border-color .15s; }
+#keySection .input-wrap:focus-within { border-color: var(--blue); }
+#keySection .input-wrap input { flex: 1; background: transparent; border: none; color: var(--text); padding: 8px 12px; font-size: 13px; outline: none; font-family: monospace; }
+#keySection .input-wrap .toggle-vis { background: none; border: none; color: var(--text-secondary); cursor: pointer; padding: 0 10px; font-size: 14px; line-height: 1; }
+#keySection .input-wrap .toggle-vis:hover { color: var(--text); }
 
 /* loading */
-#loading { text-align: center; padding: 40px 0; color: #8b949e; font-size: 14px; }
-.spinner { display: inline-block; width: 20px; height: 20px; border: 2px solid #30363d; border-top-color: #58a6ff; border-radius: 50%; animation: spin .8s linear infinite; margin-right: 8px; vertical-align: middle; }
+#loading { text-align: center; padding: 40px 0; color: var(--text-secondary); font-size: 14px; }
+.spinner { display: inline-block; width: 20px; height: 20px; border: 2px solid var(--spinner-track); border-top-color: var(--spinner-fg); border-radius: 50%; animation: spin .8s linear infinite; margin-right: 8px; vertical-align: middle; }
 .btn.spinning .icon { display: inline-block; animation: spin-fast .5s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
 @keyframes spin-fast { to { transform: rotate(360deg); } }
 
-/* dashboard */
 .hidden { display: none !important; }
-#error { background: #3d1111; border: 1px solid #f85149; border-radius: 8px; padding: 12px 16px; margin-bottom: 16px; color: #ff7b72; font-size: 13px; white-space: pre-wrap; }
+#error { background: var(--error-bg); border: 1px solid var(--error-border); border-radius: 8px; padding: 12px 16px; margin-bottom: 16px; color: var(--error-text); font-size: 13px; white-space: pre-wrap; }
+#keyExpiry { margin: -8px 0 16px; font-size: 12px; padding: 0 4px; }
+#keyExpiry.warn { color: var(--yellow); }
+#keyExpiry.danger { color: var(--red); }
 
-/* section titles */
-.section-title { font-size: 13px; font-weight: 600; color: #8b949e; text-transform: uppercase; letter-spacing: 0.5px; margin: 20px 0 10px; }
-.section-title .note { font-weight: 400; text-transform: none; color: #484f58; font-size: 11px; letter-spacing: 0; }
+.section-title { font-size: 13px; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; margin: 20px 0 10px; }
+.section-title .note { font-weight: 400; text-transform: none; color: var(--text-muted); font-size: 11px; letter-spacing: 0; }
 
-/* cards */
 .card-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 10px; }
 .card {
-  background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 14px 16px;
-  display: flex; flex-direction: column; gap: 4px;
+  background: var(--card-bg); border: 1px solid var(--border); border-radius: 8px; padding: 14px 16px;
+  display: flex; flex-direction: column; gap: 4px; transition: background .3s, border .3s;
 }
-.card .label { font-size: 11px; color: #8b949e; text-transform: uppercase; letter-spacing: 0.3px; }
+.card .label { font-size: 11px; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.3px; }
 .card .value { font-size: 22px; font-weight: 600; font-variant-numeric: tabular-nums; }
-.card .value.green { color: #3fb950; }
-.card .value.red { color: #f85149; }
-.card .value.yellow { color: #d29922; }
+.card .value.green { color: var(--green); }
+.card .value.red { color: var(--red); }
+.card .value.yellow { color: var(--yellow); }
 .card .value.sm { font-size: 16px; }
-.card .sub { font-size: 10px; color: #484f58; margin-top: 2px; }
+.card .sub { font-size: 10px; color: var(--text-muted); margin-top: 2px; }
 
-/* tables */
-.table-wrap { background: #161b22; border: 1px solid #30363d; border-radius: 8px; overflow-x: auto; }
+.table-wrap { background: var(--table-bg); border: 1px solid var(--border); border-radius: 8px; overflow-x: auto; }
 .table-wrap.scroll { max-height: 420px; overflow-y: auto; }
 table { width: 100%; border-collapse: collapse; font-size: 13px; }
-th { text-align: left; padding: 10px 14px; color: #8b949e; font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.3px; border-bottom: 1px solid #30363d; white-space: nowrap; position: sticky; top: 0; background: #161b22; }
-td { padding: 10px 14px; border-bottom: 1px solid #21262d; }
+th { text-align: left; padding: 10px 14px; color: var(--text-secondary); font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.3px; border-bottom: 1px solid var(--border); white-space: nowrap; position: sticky; top: 0; background: var(--table-bg); }
+td { padding: 10px 14px; border-bottom: 1px solid var(--border-light); }
 tr:last-child td { border-bottom: none; }
-tr:hover td { background: #1c2128; }
+tr:hover td { background: var(--bg-hover); }
 td.model-name { font-family: monospace; font-size: 12px; max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 td.numeric { text-align: right; font-variant-numeric: tabular-nums; }
 th.numeric { text-align: right; }
 
+@media (max-width: 820px) {
+  .card-row { grid-template-columns: repeat(2, 1fr); }
+}
 @media (max-width: 640px) {
   body { padding: 12px; }
   .card-row { grid-template-columns: 1fr; }
-  header { flex-wrap: wrap; }
-  #keySection .input-wrap { min-width: 100%; }
+  header h1 { font-size: 17px; }
+  #lastUpdated { font-size: 11px; }
+  #refreshHint { display: none; }
+  #keySection { flex-direction: column; align-items: stretch; }
+  #keySection .input-wrap { min-width: 0; }
+  .card { padding: 12px; }
+  .card .value { font-size: 20px; }
+  .card .value.sm { font-size: 14px; }
+  .table-wrap.scroll { max-height: 300px; }
+  th, td { padding: 8px 10px; font-size: 12px; }
+  th { font-size: 10px; }
+  td.model-name { max-width: 120px; font-size: 11px; }
+}
+@media (max-width: 420px) {
+  .section-title { font-size: 12px; margin: 16px 0 8px; }
+  .card .value { font-size: 18px; }
+  th, td { padding: 6px 8px; font-size: 11px; }
+  td.model-name { max-width: 90px; }
 }
 </style>
 </head>
 <body>
 <div id="app">
   <header>
-    <h1>OpenRouter 仪表盘</h1>
+    <h1 data-i18n="title">OpenRouter 仪表盘</h1>
+    <select class="compact-select" id="themeSelect" title="切换主题">
+      <option value="light">☀️ 白天</option>
+      <option value="dark">🌙 夜晚</option>
+      <option value="auto">🔄 系统自动</option>
+    </select>
+    <select class="compact-select" id="langSelect">
+      <option value="zh-CN">简体中文</option>
+      <option value="zh-TW">繁體中文</option>
+      <option value="en">English</option>
+    </select>
     <span id="lastUpdated"></span>
-    <span id="refreshHint">每 30 秒自动刷新</span>
-    <button class="btn" id="refreshBtn" title="手动刷新"><span class="icon">&#x21bb;</span> 刷新</button>
+    <span id="refreshHint" data-i18n="refreshHint">每 30 秒自动刷新</span>
+    <button class="btn" id="refreshBtn" title="手动刷新"><span class="icon">&#x21bb;</span> <span data-i18n="refresh">刷新</span></button>
   </header>
 
   <div id="keySection">
     <div class="input-wrap">
-      <input type="password" id="apiKeyInput" placeholder="输入你的 Management Key..." spellcheck="false" autocomplete="off" />
+      <input type="password" id="apiKeyInput" placeholder="" spellcheck="false" autocomplete="off" />
       <button class="toggle-vis" id="toggleKeyVis" title="显示/隐藏 Key">&#x1f441;</button>
     </div>
-    <button class="btn btn-primary" id="saveKeyBtn">保存</button>
-    <button class="btn btn-danger" id="clearKeyBtn">清除</button>
+    <button class="btn btn-primary" id="saveKeyBtn" data-i18n="save">保存</button>
+    <button class="btn btn-danger" id="clearKeyBtn" data-i18n="clear">清除</button>
   </div>
+
+  <div id="keyExpiry" class="hidden"></div>
 
   <div id="error" class="hidden"></div>
 
   <div id="loading" class="hidden">
-    <span class="spinner"></span>加载中...
+    <span class="spinner"></span><span data-i18n="loading">加载中...</span>
   </div>
 
   <div id="dashboard" class="hidden">
-    <div class="section-title">额度概览</div>
+    <div class="section-title" data-i18n="creditSummary">额度概览</div>
     <div class="card-row">
-      <div class="card"><span class="label">总额度</span><span class="value" id="totalLimit">—</span></div>
-      <div class="card"><span class="label">已用量</span><span class="value" id="totalUsed">—</span></div>
-      <div class="card"><span class="label">剩余量</span><span class="value" id="remaining">—</span></div>
+      <div class="card"><span class="label" data-i18n="totalLimit">总额度</span><span class="value" id="totalLimit">—</span></div>
+      <div class="card"><span class="label" data-i18n="totalUsed">已用量</span><span class="value" id="totalUsed">—</span></div>
+      <div class="card"><span class="label" data-i18n="remaining">剩余量</span><span class="value" id="remaining">—</span></div>
     </div>
 
     <div class="card-row">
-      <div class="card"><span class="label">今日费用</span><span class="value" id="todayUsage">—</span></div>
-      <div class="card"><span class="label">本周费用</span><span class="value" id="weekUsage">—</span></div>
-      <div class="card"><span class="label">本月费用</span><span class="value" id="monthUsage">—</span></div>
+      <div class="card"><span class="label" data-i18n="todayCost">今日费用</span><span class="value" id="todayUsage">—</span></div>
+      <div class="card"><span class="label" data-i18n="weekCost">本周费用</span><span class="value" id="weekUsage">—</span></div>
+      <div class="card"><span class="label" data-i18n="monthCost">本月费用</span><span class="value" id="monthUsage">—</span></div>
     </div>
 
     <div class="card-row" id="activityPeriodRow">
-      <div class="card"><span class="label">今日请求 / Token</span><span class="value sm" id="todayActivity">—</span><span class="sub">统计延迟约 1 天</span></div>
-      <div class="card"><span class="label">本周请求 / Token</span><span class="value sm" id="weekActivity">—</span></div>
-      <div class="card"><span class="label">本月请求 / Token</span><span class="value sm" id="monthActivity">—</span></div>
+      <div class="card"><span class="label" data-i18n="todayReqToken">今日请求 / Token</span><span class="value sm" id="todayActivity">—</span><span class="sub" data-i18n="delayNote">统计延迟约 1 天</span></div>
+      <div class="card"><span class="label" data-i18n="weekReqToken">本周请求 / Token</span><span class="value sm" id="weekActivity">—</span></div>
+      <div class="card"><span class="label" data-i18n="monthReqToken">本月请求 / Token</span><span class="value sm" id="monthActivity">—</span></div>
     </div>
 
-    <div class="section-title">信用额度</div>
+    <div class="section-title" data-i18n="accountCredits">信用额度</div>
     <div class="card-row">
-      <div class="card"><span class="label">已购买</span><span class="value" id="creditsPurchased">—</span></div>
-      <div class="card"><span class="label">已消耗</span><span class="value" id="creditsConsumed">—</span></div>
-      <div class="card"><span class="label">剩余额度</span><span class="value" id="creditsRemaining">—</span></div>
+      <div class="card"><span class="label" data-i18n="purchased">已购买</span><span class="value" id="creditsPurchased">—</span></div>
+      <div class="card"><span class="label" data-i18n="consumed">已消耗</span><span class="value" id="creditsConsumed">—</span></div>
+      <div class="card"><span class="label" data-i18n="remainingCredits">剩余额度</span><span class="value" id="creditsRemaining">—</span></div>
     </div>
 
-    <div class="section-title">汇总 <span class="note">（活动数据延迟约 1 天）</span></div>
+    <div class="section-title"><span data-i18n="summary">汇总</span> <span class="note" data-i18n="summaryDelay">（活动数据延迟约 1 天）</span></div>
     <div class="card-row">
-      <div class="card"><span class="label">总请求数</span><span class="value" id="totalRequests">—</span></div>
-      <div class="card"><span class="label">Prompt Tokens</span><span class="value" id="totalPromptTokens">—</span></div>
-      <div class="card"><span class="label">Completion Tokens</span><span class="value" id="totalCompletionTokens">—</span></div>
+      <div class="card"><span class="label" data-i18n="totalRequests">总请求数</span><span class="value" id="totalRequests">—</span></div>
+      <div class="card"><span class="label" data-i18n="promptTokens">Prompt Tokens</span><span class="value" id="totalPromptTokens">—</span></div>
+      <div class="card"><span class="label" data-i18n="completionTokens">Completion Tokens</span><span class="value" id="totalCompletionTokens">—</span></div>
     </div>
 
-    <div class="section-title">各模型用量（汇总）</div>
+    <div class="section-title" data-i18n="usageByModel">各模型用量（汇总）</div>
     <div class="table-wrap">
       <table>
         <thead>
           <tr>
-            <th>模型</th>
-            <th class="numeric">请求数</th>
-            <th class="numeric">Prompt</th>
-            <th class="numeric">Completion</th>
-            <th class="numeric">费用</th>
+            <th data-i18n="model">模型</th>
+            <th class="numeric" data-i18n="requests">请求数</th>
+            <th class="numeric" data-i18n="prompt">Prompt</th>
+            <th class="numeric" data-i18n="completion">Completion</th>
+            <th class="numeric" data-i18n="cost">费用</th>
           </tr>
         </thead>
         <tbody id="modelBody"></tbody>
       </table>
     </div>
 
-    <div class="section-title">最近使用记录</div>
+    <div class="section-title" data-i18n="recentActivity">最近使用记录</div>
     <div class="table-wrap scroll">
       <table>
         <thead>
           <tr>
-            <th>日期</th>
-            <th>模型</th>
-            <th>提供商</th>
-            <th class="numeric">请求数</th>
-            <th class="numeric">Prompt</th>
-            <th class="numeric">Completion</th>
-            <th class="numeric">费用</th>
+            <th data-i18n="date">日期</th>
+            <th data-i18n="model">模型</th>
+            <th data-i18n="provider">提供商</th>
+            <th class="numeric" data-i18n="requests">请求数</th>
+            <th class="numeric" data-i18n="prompt">Prompt</th>
+            <th class="numeric" data-i18n="completion">Completion</th>
+            <th class="numeric" data-i18n="cost">费用</th>
           </tr>
         </thead>
         <tbody id="logBody"></tbody>
@@ -179,14 +275,92 @@ th.numeric { text-align: right; }
 <script>
 const BASE = 'https://openrouter.ai/api/v1';
 const KEY_STORAGE = 'openrouter_mgmt_key';
+const THEME_STORAGE = 'openrouter_theme';
+const LANG_STORAGE = 'openrouter_lang';
 const REFRESH_INTERVAL = 30000;
 
 let refreshTimer = null;
 let loadingCount = 0;
+let currentLang = 'zh-CN';
+
+const LANG = {
+  'zh-CN': {
+    title: 'OpenRouter 仪表盘', refreshHint: '每 30 秒自动刷新', refresh: '刷新',
+    keyPlaceholder: '输入你的 Management Key...', save: '保存', clear: '清除',
+    loading: '加载中...', updatedAt: '更新于 ',
+    creditSummary: '额度概览', totalLimit: '总额度', totalUsed: '已用量',
+    remaining: '剩余量', todayCost: '今日费用', weekCost: '本周费用',
+    monthCost: '本月费用', todayReqToken: '今日请求 / Token',
+    weekReqToken: '本周请求 / Token', monthReqToken: '本月请求 / Token',
+    delayNote: '统计延迟约 1 天',
+    accountCredits: '信用额度', purchased: '已购买', consumed: '已消耗',
+    remainingCredits: '剩余额度',
+    summary: '汇总', summaryDelay: '（活动数据延迟约 1 天）',
+    totalRequests: '总请求数', promptTokens: 'Prompt Tokens', completionTokens: 'Completion Tokens',
+    usageByModel: '各模型用量（汇总）',
+    model: '模型', requests: '请求数', prompt: 'Prompt', completion: 'Completion', cost: '费用',
+    recentActivity: '最近使用记录', date: '日期', provider: '提供商',
+    noActivity: '暂无活动数据', noRecords: '暂无使用记录',
+    needsMgmtKey: '需 Management Key', noLimitSet: '未设置额度限制',
+    enterKey: '请输入有效的 API Key',
+    themeLight: '白天', themeDark: '夜晚', themeAuto: '系统自动',
+    keyExpires: 'Key 将于 {d} 天后过期', keyExpired: 'Key 已过期', keyNever: '永不过期',
+    keyExpires: 'Key 将于 {d} 天后过期', keyExpired: 'Key 已过期', keyNever: '永不过期',
+  },
+  'zh-TW': {
+    title: 'OpenRouter 儀表板', refreshHint: '每 30 秒自動重新整理', refresh: '重新整理',
+    keyPlaceholder: '輸入你的 Management Key...', save: '儲存', clear: '清除',
+    loading: '載入中...', updatedAt: '更新於 ',
+    creditSummary: '額度概覽', totalLimit: '總額度', totalUsed: '已用量',
+    remaining: '剩餘量', todayCost: '今日費用', weekCost: '本週費用',
+    monthCost: '本月費用', todayReqToken: '今日請求 / Token',
+    weekReqToken: '本週請求 / Token', monthReqToken: '本月請求 / Token',
+    delayNote: '統計延遲約 1 天',
+    accountCredits: '信用額度', purchased: '已購買', consumed: '已消耗',
+    remainingCredits: '剩餘額度',
+    summary: '彙總', summaryDelay: '（活動數據延遲約 1 天）',
+    totalRequests: '總請求數', promptTokens: 'Prompt Tokens', completionTokens: 'Completion Tokens',
+    usageByModel: '各模型用量（彙總）',
+    model: '模型', requests: '請求數', prompt: 'Prompt', completion: 'Completion', cost: '費用',
+    recentActivity: '最近使用記錄', date: '日期', provider: '提供商',
+    noActivity: '暫無活動數據', noRecords: '暫無使用記錄',
+    needsMgmtKey: '需 Management Key', noLimitSet: '未設定額度限制',
+    enterKey: '請輸入有效的 API Key',
+    themeLight: '白天', themeDark: '夜晚', themeAuto: '系統自動',
+    keyExpires: 'Key 將於 {d} 天後過期', keyExpired: 'Key 已過期', keyNever: '永不過期',
+  },
+  'en': {
+    title: 'OpenRouter Dashboard', refreshHint: 'Auto-refresh every 30s', refresh: 'Refresh',
+    keyPlaceholder: 'Enter your Management Key...', save: 'Save', clear: 'Clear',
+    loading: 'Loading...', updatedAt: 'Updated at ',
+    creditSummary: 'Credit Summary', totalLimit: 'Total Limit', totalUsed: 'Used',
+    remaining: 'Remaining', todayCost: "Today's Cost", weekCost: 'This Week',
+    monthCost: 'This Month', todayReqToken: 'Today Req / Token',
+    weekReqToken: 'Week Req / Token', monthReqToken: 'Month Req / Token',
+    delayNote: '~1 day delay',
+    accountCredits: 'Account Credits', purchased: 'Purchased', consumed: 'Consumed',
+    remainingCredits: 'Remaining',
+    summary: 'Summary', summaryDelay: '(~1 day delay)',
+    totalRequests: 'Total Requests', promptTokens: 'Prompt Tokens', completionTokens: 'Completion Tokens',
+    usageByModel: 'Usage by Model',
+    model: 'Model', requests: 'Requests', prompt: 'Prompt', completion: 'Completion', cost: 'Cost',
+    recentActivity: 'Recent Activity', date: 'Date', provider: 'Provider',
+    noActivity: 'No activity data', noRecords: 'No records',
+    needsMgmtKey: 'Requires Mgmt Key', noLimitSet: 'No limit set',
+    enterKey: 'Please enter a valid API Key',
+    themeLight: 'Light', themeDark: 'Dark', themeAuto: 'Auto',
+    keyExpires: 'Key expires in {d} days', keyExpired: 'Key has expired', keyNever: 'Never expires',
+  },
+};
+
+function t(key) { return (LANG[currentLang] && LANG[currentLang][key]) || key; }
+function tfmt(key, data) {
+  let s = t(key);
+  for (const [k, v] of Object.entries(data)) s = s.replace('{' + k + '}', v);
+  return s;
+}
 
 const $ = s => document.querySelector(s);
-const $$ = s => document.querySelectorAll(s);
-
 const apiKeyInput = $('#apiKeyInput');
 const saveKeyBtn = $('#saveKeyBtn');
 const clearKeyBtn = $('#clearKeyBtn');
@@ -196,8 +370,63 @@ const loading = $('#loading');
 const errorEl = $('#error');
 const refreshBtn = $('#refreshBtn');
 const lastUpdated = $('#lastUpdated');
+const themeSelect = $('#themeSelect');
+const langSelect = $('#langSelect');
 
-/* ---- Formatting helpers ---- */
+/* ---- Theme ---- */
+function getSystemTheme() {
+  const h = new Date().getHours();
+  return h >= 6 && h < 18 ? 'light' : 'dark';
+}
+
+function applyTheme(mode) {
+  if (mode === 'auto') mode = getSystemTheme();
+  document.documentElement.setAttribute('data-theme', mode);
+}
+
+themeSelect.addEventListener('change', () => {
+  const v = themeSelect.value;
+  localStorage.setItem(THEME_STORAGE, v);
+  applyTheme(v);
+});
+
+// auto switch at minute boundaries
+function startThemeTimer() {
+  const msToNextMin = (60 - new Date().getSeconds()) * 1000 - new Date().getMilliseconds();
+  setTimeout(() => {
+    if ((localStorage.getItem(THEME_STORAGE) || 'auto') === 'auto') applyTheme('auto');
+    setInterval(() => {
+      if ((localStorage.getItem(THEME_STORAGE) || 'auto') === 'auto') applyTheme('auto');
+    }, 60000);
+  }, msToNextMin);
+}
+
+/* ---- Language ---- */
+function applyLanguage() {
+  currentLang = langSelect.value;
+  localStorage.setItem(LANG_STORAGE, currentLang);
+
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    el.textContent = t(el.dataset.i18n);
+  });
+
+  const themeLabels = { light: '\u2600\u{fe0f} ', dark: '\u{1f319} ', auto: '\u{1f504} ' };
+  const themeKeys = { light: 'themeLight', dark: 'themeDark', auto: 'themeAuto' };
+  for (const [v, k] of Object.entries(themeKeys)) {
+    const o = themeSelect.querySelector('option[value="' + v + '"]');
+    if (o) o.textContent = themeLabels[v] + t(k);
+  }
+
+  apiKeyInput.placeholder = t('keyPlaceholder');
+  document.title = t('title');
+
+  if (dashboard.classList.contains('hidden') === false) refresh();
+  updateLastUpdated();
+}
+
+langSelect.addEventListener('change', applyLanguage);
+
+/* ---- Formatting ---- */
 function fmtCurrency(n) {
   if (n == null || isNaN(n)) return '—';
   return (n < 0 ? '-$' : '$') + Math.abs(n).toFixed(2);
@@ -217,7 +446,7 @@ function fmtTime() {
   return new Date().toLocaleTimeString();
 }
 
-/* ---- Loading overlay ---- */
+/* ---- Loading ---- */
 function setLoading(on) {
   loadingCount += on ? 1 : -1;
   const show = loadingCount > 0;
@@ -225,16 +454,10 @@ function setLoading(on) {
   dashboard.classList.toggle('hidden', show);
 }
 
-/* ---- API calls ---- */
+/* ---- API ---- */
 function getKey() { return localStorage.getItem(KEY_STORAGE); }
-function setKey(v) {
-  if (v) localStorage.setItem(KEY_STORAGE, v);
-  else localStorage.removeItem(KEY_STORAGE);
-}
-
-function headers() {
-  return { 'Authorization': 'Bearer ' + getKey(), 'Content-Type': 'application/json' };
-}
+function setKey(v) { v ? localStorage.setItem(KEY_STORAGE, v) : localStorage.removeItem(KEY_STORAGE); }
+function headers() { return { 'Authorization': 'Bearer ' + getKey(), 'Content-Type': 'application/json' }; }
 
 async function apiGet(path) {
   const res = await fetch(BASE + path, { headers: headers() });
@@ -258,8 +481,8 @@ function processActivity(items) {
 
   const byModel = {};
   let totalReqs = 0, totalPrompt = 0, totalCompletion = 0;
-  let periodReqs = { today: 0, week: 0, month: 0 };
-  let periodToks = { today: 0, week: 0, month: 0 };
+  const periodReqs = { today: 0, week: 0, month: 0 };
+  const periodToks = { today: 0, week: 0, month: 0 };
 
   const now = new Date();
   const today = now.toISOString().slice(0, 10);
@@ -280,10 +503,10 @@ function processActivity(items) {
 
     const d = item.date;
     const r = item.requests || 0;
-    const t = (item.prompt_tokens || 0) + (item.completion_tokens || 0);
-    if (d === today) { periodReqs.today += r; periodToks.today += t; }
-    if (d >= weekStart) { periodReqs.week += r; periodToks.week += t; }
-    if (d >= monthStart) { periodReqs.month += r; periodToks.month += t; }
+    const to = (item.prompt_tokens || 0) + (item.completion_tokens || 0);
+    if (d === today) { periodReqs.today += r; periodToks.today += to; }
+    if (d >= weekStart) { periodReqs.week += r; periodToks.week += to; }
+    if (d >= monthStart) { periodReqs.month += r; periodToks.month += to; }
   }
 
   const sorted = [...items].sort((a, b) => b.date.localeCompare(a.date));
@@ -292,33 +515,30 @@ function processActivity(items) {
   return { totalReqs, totalPrompt, totalCompletion, modelSorted, sorted, periodReqs, periodToks };
 }
 
-/* ---- Render functions ---- */
+/* ---- Render ---- */
 function renderKeyData(d) {
   if (!d.data) {
     for (const id of ['totalLimit', 'totalUsed', 'remaining', 'todayUsage', 'weekUsage', 'monthUsage']) {
       $('#' + id).textContent = '—';
     }
     $('#remaining').className = 'value';
+    $('#keyExpiry').className = 'hidden';
     return;
   }
 
   const { limit, usage: used, limit_remaining: remaining,
-          usage_daily, usage_weekly, usage_monthly } = d.data;
-
-  const totalLimit = $('#totalLimit');
-  const totalUsed = $('#totalUsed');
-  const remainingEl = $('#remaining');
+          usage_daily, usage_weekly, usage_monthly, expires_at } = d.data;
 
   if (limit != null) {
-    totalLimit.textContent = fmtCurrency(limit);
+    $('#totalLimit').textContent = fmtCurrency(limit);
   } else {
-    totalLimit.textContent = '未设置额度限制';
-    totalLimit.style.fontSize = '14px';
+    $('#totalLimit').textContent = t('noLimitSet');
+    $('#totalLimit').style.fontSize = '14px';
   }
 
-  totalUsed.textContent = fmtCurrency(used);
+  $('#totalUsed').textContent = fmtCurrency(used);
+  const remainingEl = $('#remaining');
   remainingEl.textContent = fmtCurrency(remaining);
-
   remainingEl.className = 'value';
   if (remaining != null) {
     if (remaining <= 0) remainingEl.classList.add('red');
@@ -330,6 +550,23 @@ function renderKeyData(d) {
   $('#todayUsage').textContent = fmtCurrency(usage_daily);
   $('#weekUsage').textContent = fmtCurrency(usage_weekly);
   $('#monthUsage').textContent = fmtCurrency(usage_monthly);
+
+  const expiryEl = $('#keyExpiry');
+  if (!expires_at) {
+    expiryEl.className = 'hidden';
+  } else {
+    const diff = new Date(expires_at) - new Date();
+    const days = Math.ceil(diff / 86400000);
+    if (days <= 0) {
+      expiryEl.textContent = t('keyExpired');
+      expiryEl.className = 'danger';
+    } else if (days <= 7) {
+      expiryEl.textContent = tfmt('keyExpires', { d: days });
+      expiryEl.className = 'warn';
+    } else {
+      expiryEl.className = 'hidden';
+    }
+  }
 }
 
 function renderCreditsData(d) {
@@ -359,39 +596,36 @@ function renderCreditsData(d) {
 
 function renderActivityData(result) {
   const tbody = $('#modelBody');
-
   if (!result) {
     $('#totalRequests').textContent = '—';
     $('#totalPromptTokens').textContent = '—';
     $('#totalCompletionTokens').textContent = '—';
-    tbody.innerHTML = '<tr><td colspan="5" style="color:#8b949e;text-align:center;padding:24px;">暂无活动数据</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="5" style="color:var(--text-secondary);text-align:center;padding:24px;">' + t('noActivity') + '</td></tr>';
     return;
   }
 
   const { totalReqs, totalPrompt, totalCompletion, modelSorted } = result;
-
   $('#totalRequests').textContent = fmtNumber(totalReqs);
   $('#totalPromptTokens').textContent = fmtTokens(totalPrompt);
   $('#totalCompletionTokens').textContent = fmtTokens(totalCompletion);
 
   tbody.innerHTML = '';
   for (const [model, data] of modelSorted) {
-    const tr = document.createElement('tr');
-    tr.innerHTML = `
-      <td class="model-name" title="${model}">${model}</td>
-      <td class="numeric">${fmtNumber(data.requests)}</td>
-      <td class="numeric">${fmtTokens(data.prompt)}</td>
-      <td class="numeric">${fmtTokens(data.completion)}</td>
-      <td class="numeric">${fmtCurrency(data.cost)}</td>`;
-    tbody.appendChild(tr);
+    tbody.insertAdjacentHTML('beforeend', `
+      <tr>
+        <td class="model-name" title="${model}">${model}</td>
+        <td class="numeric">${fmtNumber(data.requests)}</td>
+        <td class="numeric">${fmtTokens(data.prompt)}</td>
+        <td class="numeric">${fmtTokens(data.completion)}</td>
+        <td class="numeric">${fmtCurrency(data.cost)}</td>
+      </tr>`);
   }
 }
 
 function renderActivityLog(result) {
   const tbody = $('#logBody');
-
   if (!result) {
-    tbody.innerHTML = '<tr><td colspan="7" style="color:#8b949e;text-align:center;padding:24px;">暂无使用记录</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="7" style="color:var(--text-secondary);text-align:center;padding:24px;">' + t('noRecords') + '</td></tr>';
     return;
   }
 
@@ -405,21 +639,21 @@ function renderActivityLog(result) {
 
   tbody.innerHTML = '';
   for (const item of sorted) {
-    const tr = document.createElement('tr');
-    tr.innerHTML = `
-      <td style="white-space:nowrap;font-size:12px;color:#8b949e">${item.date}</td>
-      <td class="model-name" title="${item.model}">${item.model}</td>
-      <td style="font-size:12px">${item.provider_name || '—'}</td>
-      <td class="numeric">${fmtNumber(item.requests)}</td>
-      <td class="numeric">${fmtTokens(item.prompt_tokens)}</td>
-      <td class="numeric">${fmtTokens(item.completion_tokens)}</td>
-      <td class="numeric">${fmtCurrency(item.usage)}</td>`;
-    tbody.appendChild(tr);
+    tbody.insertAdjacentHTML('beforeend', `
+      <tr>
+        <td style="white-space:nowrap;font-size:12px;color:var(--text-secondary)">${item.date}</td>
+        <td class="model-name" title="${item.model}">${item.model}</td>
+        <td style="font-size:12px">${item.provider_name || '—'}</td>
+        <td class="numeric">${fmtNumber(item.requests)}</td>
+        <td class="numeric">${fmtTokens(item.prompt_tokens)}</td>
+        <td class="numeric">${fmtTokens(item.completion_tokens)}</td>
+        <td class="numeric">${fmtCurrency(item.usage)}</td>
+      </tr>`);
   }
 }
 
 function updateLastUpdated() {
-  lastUpdated.textContent = '更新于 ' + fmtTime();
+  lastUpdated.textContent = t('updatedAt') + fmtTime();
 }
 
 /* ---- Main refresh ---- */
@@ -433,9 +667,7 @@ async function refresh() {
   }
 
   const results = await Promise.allSettled([
-    apiGet('/key'),
-    apiGet('/credits'),
-    apiGet('/activity'),
+    apiGet('/key'), apiGet('/credits'), apiGet('/activity'),
   ]);
 
   const keyData = results[0].status === 'fulfilled' ? results[0].value : { error: results[0].reason.message };
@@ -450,11 +682,11 @@ async function refresh() {
     renderActivityData(result);
     renderActivityLog(result);
   } else {
-    $('#totalRequests').textContent = '需 Management Key';
+    $('#totalRequests').textContent = t('needsMgmtKey');
     $('#totalPromptTokens').textContent = '';
     $('#totalCompletionTokens').textContent = '';
-    $('#modelBody').innerHTML = '<tr><td colspan="5" style="color:#8b949e;text-align:center;padding:24px;">需 Management Key</td></tr>';
-    $('#logBody').innerHTML = '<tr><td colspan="7" style="color:#8b949e;text-align:center;padding:24px;">需 Management Key</td></tr>';
+    $('#modelBody').innerHTML = '<tr><td colspan="5" style="color:var(--text-secondary);text-align:center;padding:24px;">' + t('needsMgmtKey') + '</td></tr>';
+    $('#logBody').innerHTML = '<tr><td colspan="7" style="color:var(--text-secondary);text-align:center;padding:24px;">' + t('needsMgmtKey') + '</td></tr>';
     for (const id of ['todayActivity', 'weekActivity', 'monthActivity']) $('#' + id).textContent = '—';
   }
 
@@ -464,21 +696,17 @@ async function refresh() {
 /* ---- Timer ---- */
 function startTimer() {
   stopTimer();
-
   const now = new Date();
   const sec = now.getSeconds();
   const ms = now.getMilliseconds();
-  const toNext = sec < 30
-    ? (30 - sec) * 1000 - ms
-    : (60 - sec) * 1000 - ms;
-
+  const toNext = sec < 30 ? (30 - sec) * 1000 - ms : (60 - sec) * 1000 - ms;
   refreshTimer = setTimeout(() => {
     refresh();
     refreshTimer = setInterval(refresh, REFRESH_INTERVAL);
   }, toNext);
 }
 function stopTimer() {
-  if (refreshTimer) { clearInterval(refreshTimer); refreshTimer = null; }
+  if (refreshTimer) { clearTimeout(refreshTimer); clearInterval(refreshTimer); refreshTimer = null; }
 }
 
 document.addEventListener('visibilitychange', () => {
@@ -488,25 +716,13 @@ document.addEventListener('visibilitychange', () => {
 
 /* ---- Key UI ---- */
 toggleKeyVis.addEventListener('click', () => {
-  const t = apiKeyInput;
-  if (t.type === 'password') { t.type = 'text'; toggleKeyVis.textContent = '\u{1f441}'; }
-  else { t.type = 'password'; toggleKeyVis.textContent = '\u{1f441}'; }
+  if (apiKeyInput.type === 'password') { apiKeyInput.type = 'text'; toggleKeyVis.textContent = '\u{1f441}'; }
+  else { apiKeyInput.type = 'password'; toggleKeyVis.textContent = '\u{1f441}'; }
 });
-
-function initKeyUI() {
-  const saved = getKey();
-  if (saved) {
-    apiKeyInput.value = saved;
-    dashboard.classList.remove('hidden');
-    setLoading(true);
-    refresh().then(() => setLoading(false));
-    startTimer();
-  }
-}
 
 saveKeyBtn.addEventListener('click', () => {
   const val = apiKeyInput.value.trim();
-  if (!val) { showError('请输入有效的 API Key'); return; }
+  if (!val) { showError(t('enterKey')); return; }
   setKey(val);
   showError(null);
   dashboard.classList.remove('hidden');
@@ -530,7 +746,39 @@ refreshBtn.addEventListener('click', () => {
 });
 apiKeyInput.addEventListener('keydown', e => { if (e.key === 'Enter') saveKeyBtn.click(); });
 
-initKeyUI();
+/* ---- Init ---- */
+function init() {
+  currentLang = localStorage.getItem(LANG_STORAGE) || 'zh-CN';
+  langSelect.value = currentLang;
+
+  const savedKey = getKey();
+  if (savedKey) {
+    apiKeyInput.value = savedKey;
+    dashboard.classList.remove('hidden');
+    setLoading(true);
+    refresh().then(() => setLoading(false));
+    startTimer();
+  }
+
+  // restore theme
+  const savedTheme = localStorage.getItem(THEME_STORAGE) || 'auto';
+  themeSelect.value = savedTheme;
+  applyTheme(savedTheme);
+  startThemeTimer();
+
+  // apply language to static text
+  apiKeyInput.placeholder = t('keyPlaceholder');
+  document.title = t('title');
+  document.querySelectorAll('[data-i18n]').forEach(el => { el.textContent = t(el.dataset.i18n); });
+  const tl = { light: '\u2600\u{fe0f} ', dark: '\u{1f319} ', auto: '\u{1f504} ' };
+  const tk = { light: 'themeLight', dark: 'themeDark', auto: 'themeAuto' };
+  for (const [v, k] of Object.entries(tk)) {
+    const o = themeSelect.querySelector('option[value="' + v + '"]');
+    if (o) o.textContent = tl[v] + t(k);
+  }
+}
+
+init();
 </script>
 </body>
 </html>
