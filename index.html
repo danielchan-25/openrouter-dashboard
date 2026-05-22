@@ -357,7 +357,21 @@ const LANG = {
   },
 };
 
-function t(key) { return (LANG[currentLang] && LANG[currentLang][key]) || key; }
+const EMOJI_MAP = {
+  title: '📊', creditSummary: '💳', totalLimit: '💰', totalUsed: '📊', remaining: '📦',
+  todayCost: '💵', weekCost: '🗓️', monthCost: '📆',
+  todayReqToken: '📈', weekReqToken: '📈', monthReqToken: '📈',
+  accountCredits: '🏦', purchased: '🛒', consumed: '🔥', remainingCredits: '💎',
+  summary: '📋', totalRequests: '🔄', promptTokens: '📝', completionTokens: '✅',
+  usageByModel: '🤖', model: '🧠', requests: '🔄', prompt: '📝', completion: '✅', cost: '💵',
+  recentActivity: '📜', date: '🗓️', provider: '🔌', loading: '⏳', refresh: '🔄',
+  noActivity: '📭', noRecords: '📭',
+};
+function t(key) {
+  let s = (LANG[currentLang] && LANG[currentLang][key]) || key;
+  if (EMOJI_MAP[key]) s = EMOJI_MAP[key] + ' ' + s;
+  return s;
+}
 function tfmt(key, data) {
   let s = t(key);
   for (const [k, v] of Object.entries(data)) s = s.replace('{' + k + '}', v);
@@ -514,7 +528,7 @@ function processActivity(items) {
   }
 
   const sorted = [...items].sort((a, b) => b.date.localeCompare(a.date));
-  const modelSorted = Object.entries(byModel).sort((a, b) => b[1].cost - a[1].cost);
+  const modelSorted = Object.entries(byModel).sort((a, b) => b[1].requests - a[1].requests);
 
   return { totalReqs, totalPrompt, totalCompletion, modelSorted, sorted, periodReqs, periodToks };
 }
