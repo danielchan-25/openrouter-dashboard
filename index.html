@@ -70,7 +70,8 @@ body {
 #app { max-width: 960px; margin: 0 auto; }
 
 header { display: flex; align-items: center; gap: 8px; margin-bottom: 20px; flex-wrap: wrap; }
-header h1 { font-size: 20px; font-weight: 600; flex: 1; min-width: 0; }
+header h1 { font-size: 20px; font-weight: 600; min-width: 0; }
+header .controls { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; flex: 1; justify-content: flex-end; }
 #lastUpdated { font-size: 12px; color: var(--text-secondary); white-space: nowrap; }
 #refreshHint { font-size: 11px; color: var(--text-muted); }
 .btn {
@@ -145,7 +146,8 @@ th.numeric { text-align: right; }
 @media (max-width: 640px) {
   body { padding: 12px; }
   .card-row { grid-template-columns: 1fr; }
-  header h1 { font-size: 17px; }
+  header h1 { font-size: 17px; width: 100%; }
+  header .controls { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; width: 100%; justify-content: flex-start; }
   #lastUpdated { font-size: 11px; }
   #refreshHint { display: none; }
   #keySection { flex-direction: column; align-items: stretch; }
@@ -170,19 +172,21 @@ th.numeric { text-align: right; }
 <div id="app">
   <header>
     <h1 data-i18n="title">OpenRouter 仪表盘</h1>
-    <select class="compact-select" id="themeSelect" title="切换主题">
-      <option value="light">☀️ 白天</option>
-      <option value="dark">🌙 夜晚</option>
-      <option value="auto">🔄 系统自动</option>
-    </select>
-    <select class="compact-select" id="langSelect">
-      <option value="zh-CN">简体中文</option>
-      <option value="zh-TW">繁體中文</option>
-      <option value="en">English</option>
-    </select>
-    <span id="lastUpdated"></span>
-    <span id="refreshHint" data-i18n="refreshHint">每 30 秒自动刷新</span>
-    <button class="btn" id="refreshBtn" title="手动刷新"><span class="icon">&#x21bb;</span> <span data-i18n="refresh">刷新</span></button>
+    <div class="controls">
+      <select class="compact-select" id="themeSelect" title="切换主题">
+        <option value="light">☀️ 白天</option>
+        <option value="dark">🌙 夜晚</option>
+        <option value="auto">🔄 系统自动</option>
+      </select>
+      <select class="compact-select" id="langSelect">
+        <option value="zh-CN">简体中文</option>
+        <option value="zh-TW">繁體中文</option>
+        <option value="en">English</option>
+      </select>
+      <span id="lastUpdated"></span>
+      <span id="refreshHint" data-i18n="refreshHint">每 30 秒自动刷新</span>
+      <button class="btn" id="refreshBtn" title="手动刷新"><span class="icon">&#x21bb;</span> <span data-i18n="refresh">刷新</span></button>
+    </div>
   </header>
 
   <div id="keySection">
