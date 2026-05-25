@@ -286,6 +286,22 @@ const REFRESH_INTERVAL = 30000;
 let refreshTimer = null;
 let loadingCount = 0;
 let currentLang = 'zh-CN';
+let cachedKey = null;
+const isExt = typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.id;
+function storageGet(key) {
+  if (isExt) return new Promise(r => chrome.storage.local.get(key, v => r(v[key])));
+  return Promise.resolve(localStorage.getItem(key));
+}
+function storageSet(key, val) {
+  if (isExt) return new Promise(r => chrome.storage.local.set({ [key]: val }, r));
+  localStorage.setItem(key, val);
+  return Promise.resolve();
+}
+function storageRemove(key) {
+  if (isExt) return new Promise(r => chrome.storage.local.remove(key, r));
+  localStorage.removeItem(key);
+  return Promise.resolve();
+}
 
 const LANG = {
   'zh-CN': {
@@ -404,7 +420,7 @@ function applyTheme(mode) {
 
 themeSelect.addEventListener('change', () => {
   const v = themeSelect.value;
-  localStorage.setItem(THEME_STORAGE, v);
+  storageSet(THEME_STORAGE, v);
   applyTheme(v);
 });
 
@@ -412,17 +428,17 @@ themeSelect.addEventListener('change', () => {
 function startThemeTimer() {
   const msToNextMin = (60 - new Date().getSeconds()) * 1000 - new Date().getMilliseconds();
   setTimeout(() => {
-    if ((localStorage.getItem(THEME_STORAGE) || 'auto') === 'auto') applyTheme('auto');
+    storageGet(THEME_STORAGE).then(t => { if ((t || 'auto') === 'auto') applyTheme('auto'); });
     setInterval(() => {
-      if ((localStorage.getItem(THEME_STORAGE) || 'auto') === 'auto') applyTheme('auto');
+      storageGet(THEME_STORAGE).then(t => { if ((t || 'auto') === 'auto') applyTheme('auto'); });
     }, 60000);
   }, msToNextMin);
 }
 
 /* ---- Language ---- */
-function applyLanguage() {
+async function applyLanguage() {
   currentLang = langSelect.value;
-  localStorage.setItem(LANG_STORAGE, currentLang);
+  await storageSet(LANG_STORAGE, currentLang);
 
   document.querySelectorAll('[data-i18n]').forEach(el => {
     el.textContent = t(el.dataset.i18n);
@@ -473,8 +489,11 @@ function setLoading(on) {
 }
 
 /* ---- API ---- */
-function getKey() { return localStorage.getItem(KEY_STORAGE); }
-function setKey(v) { v ? localStorage.setItem(KEY_STORAGE, v) : localStorage.removeItem(KEY_STORAGE); }
+function getKey() { return cachedKey; }
+async function setKey(v) {
+  if (v) { cachedKey = v; await storageSet(KEY_STORAGE, v); }
+  else { cachedKey = null; await storageRemove(KEY_STORAGE); }
+}
 function headers() { return { 'Authorization': 'Bearer ' + getKey(), 'Content-Type': 'application/json' }; }
 
 async function apiGet(path) {
@@ -738,10 +757,10 @@ toggleKeyVis.addEventListener('click', () => {
   else { apiKeyInput.type = 'password'; toggleKeyVis.textContent = '\u{1f441}'; }
 });
 
-saveKeyBtn.addEventListener('click', () => {
+saveKeyBtn.addEventListener('click', async () => {
   const val = apiKeyInput.value.trim();
   if (!val) { showError(t('enterKey')); return; }
-  setKey(val);
+  await setKey(val);
   showError(null);
   dashboard.classList.remove('hidden');
   setLoading(true);
@@ -749,8 +768,8 @@ saveKeyBtn.addEventListener('click', () => {
   startTimer();
 });
 
-clearKeyBtn.addEventListener('click', () => {
-  setKey(null);
+clearKeyBtn.addEventListener('click', async () => {
+  await setKey(null);
   apiKeyInput.value = '';
   dashboard.classList.add('hidden');
   loading.classList.add('hidden');
@@ -765,26 +784,27 @@ refreshBtn.addEventListener('click', () => {
 apiKeyInput.addEventListener('keydown', e => { if (e.key === 'Enter') saveKeyBtn.click(); });
 
 /* ---- Init ---- */
-function init() {
-  currentLang = localStorage.getItem(LANG_STORAGE) || 'zh-CN';
+async function init() {
+  const [savedKey, savedTheme, savedLang] = await Promise.all([
+    storageGet(KEY_STORAGE), storageGet(THEME_STORAGE), storageGet(LANG_STORAGE),
+  ]);
+
+  cachedKey = savedKey || null;
+  currentLang = savedLang || 'zh-CN';
   langSelect.value = currentLang;
 
-  const savedKey = getKey();
-  if (savedKey) {
-    apiKeyInput.value = savedKey;
+  if (cachedKey) {
+    apiKeyInput.value = cachedKey;
     dashboard.classList.remove('hidden');
     setLoading(true);
     refresh().then(() => setLoading(false));
     startTimer();
   }
 
-  // restore theme
-  const savedTheme = localStorage.getItem(THEME_STORAGE) || 'auto';
-  themeSelect.value = savedTheme;
-  applyTheme(savedTheme);
+  themeSelect.value = savedTheme || 'auto';
+  applyTheme(savedTheme || 'auto');
   startThemeTimer();
 
-  // apply language to static text
   apiKeyInput.placeholder = t('keyPlaceholder');
   document.title = t('title');
   document.querySelectorAll('[data-i18n]').forEach(el => { el.textContent = t(el.dataset.i18n); });

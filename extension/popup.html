@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OpenRouter 仪表盘</title>
+<style>
+:root {
+  --bg: #0d1117;
+  --bg-secondary: #161b22;
+  --bg-hover: #1c2128;
+  --text: #c9d1d9;
+  --text-secondary: #8b949e;
+  --text-muted: #484f58;
+  --border: #30363d;
+  --border-light: #21262d;
+  --input-bg: #0d1117;
+  --card-bg: #161b22;
+  --btn-bg: #21262d;
+  --btn-border: #30363d;
+  --error-bg: #3d1111;
+  --error-text: #ff7b72;
+  --error-border: #f85149;
+  --green: #3fb950;
+  --red: #f85149;
+  --yellow: #d29922;
+  --blue: #58a6ff;
+  --green-btn: #238636;
+  --green-btn-border: #2ea043;
+  --red-btn: #da3633;
+  --red-btn-border: #f85149;
+  --spinner-track: #30363d;
+  --spinner-fg: #58a6ff;
+}
+[data-theme="light"] {
+  --bg: #ffffff;
+  --bg-secondary: #f6f8fa;
+  --bg-hover: #f3f4f6;
+  --text: #24292f;
+  --text-secondary: #656d76;
+  --text-muted: #959da5;
+  --border: #d0d7de;
+  --border-light: #e8ecef;
+  --input-bg: #ffffff;
+  --card-bg: #f6f8fa;
+  --btn-bg: #f6f8fa;
+  --btn-border: #d0d7de;
+  --error-bg: #fff0f0;
+  --error-text: #cf222e;
+  --error-border: #cf222e;
+  --green: #1a7f37;
+  --red: #cf222e;
+  --yellow: #9a6700;
+  --blue: #0969da;
+  --green-btn: #2da44e;
+  --green-btn-border: #1a7f37;
+  --red-btn: #cf222e;
+  --red-btn-border: #b8151e;
+  --spinner-track: #d0d7de;
+  --spinner-fg: #0969da;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-size: 13px; padding: 12px; width: 480px; min-height: 600px; max-height: 700px; transition: background .3s, color .3s;
+}
+#app { max-width: 100%; }
+header { display: flex; align-items: center; gap: 6px; margin-bottom: 12px; flex-wrap: wrap; }
+header h1 { font-size: 16px; font-weight: 600; min-width: 0; }
+header .controls { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; flex: 1; justify-content: flex-end; }
+#lastUpdated { font-size: 10px; color: var(--text-secondary); white-space: nowrap; }
+.btn {
+  background: var(--btn-bg); border: 1px solid var(--btn-border); color: var(--text); padding: 4px 10px;
+  border-radius: 6px; cursor: pointer; font-size: 12px; white-space: nowrap; transition: background .15s;
+}
+.btn:hover { background: var(--bg-hover); }
+.btn-primary { background: var(--green-btn); border-color: var(--green-btn-border); }
+.btn-primary:hover { opacity: .9; }
+.btn-danger { background: var(--red-btn); border-color: var(--red-btn-border); }
+.btn-danger:hover { opacity: .9; }
+.compact-select {
+  background: var(--btn-bg); border: 1px solid var(--btn-border); color: var(--text);
+  border-radius: 6px; padding: 4px 6px; font-size: 11px; cursor: pointer; outline: none;
+  appearance: auto; transition: background .15s;
+}
+.compact-select:hover { background: var(--bg-hover); }
+#keySection { background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 8px; padding: 10px; margin-bottom: 12px; display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+#keySection .input-wrap { flex: 1; display: flex; align-items: center; background: var(--input-bg); border: 1px solid var(--border); border-radius: 6px; min-width: 140px; transition: border-color .15s; }
+#keySection .input-wrap:focus-within { border-color: var(--blue); }
+#keySection .input-wrap input { flex: 1; background: transparent; border: none; color: var(--text); padding: 6px 8px; font-size: 12px; outline: none; font-family: monospace; }
+#keySection .input-wrap .toggle-vis { background: none; border: none; color: var(--text-secondary); cursor: pointer; padding: 0 8px; font-size: 13px; line-height: 1; }
+#keySection .input-wrap .toggle-vis:hover { color: var(--text); }
+#loading { text-align: center; padding: 24px 0; color: var(--text-secondary); font-size: 13px; }
+.spinner { display: inline-block; width: 16px; height: 16px; border: 2px solid var(--spinner-track); border-top-color: var(--spinner-fg); border-radius: 50%; animation: spin .8s linear infinite; margin-right: 6px; vertical-align: middle; }
+.btn.spinning .icon { display: inline-block; animation: spin-fast .5s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes spin-fast { to { transform: rotate(360deg); } }
+.hidden { display: none !important; }
+#error { background: var(--error-bg); border: 1px solid var(--error-border); border-radius: 8px; padding: 8px 12px; margin-bottom: 12px; color: var(--error-text); font-size: 12px; white-space: pre-wrap; }
+#keyExpiry { margin: -6px 0 12px; font-size: 11px; padding: 0 4px; }
+#keyExpiry.warn { color: var(--yellow); }
+#keyExpiry.danger { color: var(--red); }
+.section-title { font-size: 12px; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; margin: 14px 0 8px; }
+.card-row { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-bottom: 8px; }
+.card {
+  background: var(--card-bg); border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px;
+  display: flex; flex-direction: column; gap: 3px; transition: background .3s, border .3s;
+}
+.card .label { font-size: 10px; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.3px; }
+.card .value { font-size: 18px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.card .value.green { color: var(--green); }
+.card .value.red { color: var(--red); }
+.card .value.yellow { color: var(--yellow); }
+.card .value.sm { font-size: 14px; }
+.card .sub { font-size: 10px; color: var(--text-muted); margin-top: 1px; }
+.table-wrap { background: var(--card-bg); border: 1px solid var(--border); border-radius: 8px; overflow-x: auto; }
+.table-wrap.scroll { max-height: 340px; overflow-y: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 12px; }
+th { text-align: left; padding: 8px 10px; color: var(--text-secondary); font-weight: 600; font-size: 10px; text-transform: uppercase; letter-spacing: 0.3px; border-bottom: 1px solid var(--border); white-space: nowrap; position: sticky; top: 0; background: var(--card-bg); }
+td { padding: 8px 10px; border-bottom: 1px solid var(--border-light); font-size: 12px; }
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: var(--bg-hover); }
+td.model-name { font-family: monospace; font-size: 11px; max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+td.numeric { text-align: right; font-variant-numeric: tabular-nums; }
+th.numeric { text-align: right; }
+#footer { text-align: center; margin-top: 10px; font-size: 11px; }
+#footer a { color: var(--blue); text-decoration: none; }
+#footer a:hover { text-decoration: underline; }
+@media (max-width: 420px) {
+  body { padding: 8px; min-width: 0; }
+  header h1 { font-size: 14px; }
+  .card-row { grid-template-columns: 1fr; }
+  .card .value { font-size: 16px; }
+  .card .value.sm { font-size: 13px; }
+}
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <h1 data-i18n="title">OpenRouter 仪表盘</h1>
+    <div class="controls">
+      <select class="compact-select" id="themeSelect">
+        <option value="light">☀️</option>
+        <option value="dark">🌙</option>
+        <option value="auto">🔄</option>
+      </select>
+      <select class="compact-select" id="langSelect">
+        <option value="zh-CN">简体</option>
+        <option value="zh-TW">繁體</option>
+        <option value="en">EN</option>
+      </select>
+      <span id="lastUpdated"></span>
+      <button class="btn" id="refreshBtn" title="刷新"><span class="icon">&#x21bb;</span></button>
+    </div>
+  </header>
+
+  <div id="keySection">
+    <div class="input-wrap">
+      <input type="password" id="apiKeyInput" placeholder="" spellcheck="false" autocomplete="off" />
+      <button class="toggle-vis" id="toggleKeyVis" title="显示/隐藏 Key">&#x1f441;</button>
+    </div>
+    <button class="btn btn-primary" id="saveKeyBtn" data-i18n="save">保存</button>
+    <button class="btn btn-danger" id="clearKeyBtn" data-i18n="clear">清除</button>
+  </div>
+
+  <div id="keyExpiry" class="hidden"></div>
+  <div id="error" class="hidden"></div>
+
+  <div id="loading" class="hidden">
+    <span class="spinner"></span><span data-i18n="loading">加载中...</span>
+  </div>
+
+  <div id="dashboard" class="hidden">
+    <div class="section-title" data-i18n="creditSummary">额度概览</div>
+    <div class="card-row">
+      <div class="card"><span class="label" data-i18n="totalLimit">总额度</span><span class="value" id="totalLimit">—</span></div>
+      <div class="card"><span class="label" data-i18n="totalUsed">已用量</span><span class="value" id="totalUsed">—</span></div>
+      <div class="card"><span class="label" data-i18n="remaining">剩余量</span><span class="value" id="remaining">—</span></div>
+    </div>
+
+    <div class="section-title" data-i18n="todayCost"></div>
+    <div class="card-row">
+      <div class="card"><span class="label" data-i18n="todayCost">今日费用</span><span class="value" id="todayUsage">—</span></div>
+      <div class="card"><span class="label" data-i18n="weekCost">本周费用</span><span class="value" id="weekUsage">—</span></div>
+      <div class="card"><span class="label" data-i18n="monthCost">本月费用</span><span class="value" id="monthUsage">—</span></div>
+    </div>
+
+    <div class="section-title" data-i18n="todayReqToken"></div>
+    <div class="card-row">
+      <div class="card"><span class="label" data-i18n="todayReqToken">今日请求 / Token</span><span class="value sm" id="todayActivity">—</span><span class="sub" data-i18n="delayNote">统计延迟约 1 天</span></div>
+      <div class="card"><span class="label" data-i18n="weekReqToken">本周请求 / Token</span><span class="value sm" id="weekActivity">—</span></div>
+      <div class="card"><span class="label" data-i18n="monthReqToken">本月请求 / Token</span><span class="value sm" id="monthActivity">—</span></div>
+    </div>
+
+    <div class="section-title" data-i18n="accountCredits">信用额度</div>
+    <div class="card-row">
+      <div class="card"><span class="label" data-i18n="purchased">已购买</span><span class="value" id="creditsPurchased">—</span></div>
+      <div class="card"><span class="label" data-i18n="consumed">已消耗</span><span class="value" id="creditsConsumed">—</span></div>
+      <div class="card"><span class="label" data-i18n="remainingCredits">剩余额度</span><span class="value" id="creditsRemaining">—</span></div>
+    </div>
+
+    <div class="section-title"><span data-i18n="summary">汇总</span> <span class="note" data-i18n="summaryDelay">（活动数据延迟约 1 天）</span></div>
+    <div class="card-row">
+      <div class="card"><span class="label" data-i18n="totalRequests">总请求数</span><span class="value" id="totalRequests">—</span></div>
+      <div class="card"><span class="label" data-i18n="promptTokens">Prompt Tokens</span><span class="value sm" id="totalPromptTokens">—</span></div>
+      <div class="card"><span class="label" data-i18n="completionTokens">Completion Tokens</span><span class="value sm" id="totalCompletionTokens">—</span></div>
+    </div>
+
+    <div class="section-title" data-i18n="usageByModel">各模型用量（汇总）</div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th data-i18n="model">模型</th>
+            <th class="numeric" data-i18n="requests">请求数</th>
+            <th class="numeric" data-i18n="prompt">Prompt</th>
+            <th class="numeric" data-i18n="completion">Completion</th>
+            <th class="numeric" data-i18n="cost">费用</th>
+          </tr>
+        </thead>
+        <tbody id="modelBody"></tbody>
+      </table>
+    </div>
+
+    <div class="section-title" data-i18n="recentActivity">最近使用记录</div>
+    <div class="table-wrap scroll">
+      <table>
+        <thead>
+          <tr>
+            <th data-i18n="date">日期</th>
+            <th data-i18n="model">模型</th>
+            <th data-i18n="provider">提供商</th>
+            <th class="numeric" data-i18n="requests">请求数</th>
+            <th class="numeric" data-i18n="prompt">Prompt</th>
+            <th class="numeric" data-i18n="completion">Completion</th>
+            <th class="numeric" data-i18n="cost">费用</th>
+          </tr>
+        </thead>
+        <tbody id="logBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div id="footer"><a href="https://openrouter-dashboard.c-325.workers.dev/" target="_blank" data-i18n="fullVersion">查看完整版 ↗</a></div>
+</div>
+
+<script src="popup.js"></script>
+</body>
+</html>
